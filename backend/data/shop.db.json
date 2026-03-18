@@ -1,0 +1,99 @@
+{
+  "products": [
+    {
+      "id": "73b79ab6-1c4d-4541-afae-d2ecbab98b9a",
+      "name_zh": "东北优质大米",
+      "name_en": "Premium Northeast Rice",
+      "name_ko": "동북 프리미엄 쌀",
+      "description_zh": "来自东北黑土地，粒粒饱满，口感软糯，营养丰富。精选优质稻谷，经过现代化加工工艺，保留大米的天然营养成分。",
+      "description_en": "From the black soil of Northeast China, each grain is full and nutritious.",
+      "description_ko": "중국 동북부 비옥한 흑토지에서 재배한 프리미엄 쌀.",
+      "category": "rice",
+      "image_url": "https://picsum.photos/seed/rice/800/600",
+      "status": "active",
+      "created_at": "2026-03-17T08:26:34.365Z",
+      "updated_at": "2026-03-17T08:26:34.365Z"
+    },
+    {
+      "id": "299ed3ca-34a5-42c5-b595-f7fd4d726ce2",
+      "name_zh": "新疆特级大枣",
+      "name_en": "Xinjiang Premium Red Dates",
+      "name_ko": "신장 프리미엄 대추",
+      "description_zh": "来自新疆和田，果肉厚实，甜度适中，富含维生素和矿物质。自然晾晒，无添加，是滋补养生的首选。",
+      "description_en": "From Hetian, Xinjiang. Thick flesh with moderate sweetness, rich in vitamins and minerals.",
+      "description_ko": "신장 허톈 지역 특산 대추. 과육이 두텁고 당도가 적당합니다.",
+      "category": "dates",
+      "image_url": "https://picsum.photos/seed/dates/800/600",
+      "status": "active",
+      "created_at": "2026-03-17T08:26:34.365Z",
+      "updated_at": "2026-03-17T08:26:34.365Z"
+    }
+  ],
+  "product_variants": [
+    {
+      "id": "6ea5703a-81b3-412c-bc84-d162513efe29",
+      "product_id": "73b79ab6-1c4d-4541-afae-d2ecbab98b9a",
+      "sku": "RICE-5kg",
+      "spec": "5kg",
+      "price": 4900,
+      "original_price": 5800,
+      "stock": 200
+    },
+    {
+      "id": "2f95739c-7b3a-4881-b780-ec54f424cb48",
+      "product_id": "73b79ab6-1c4d-4541-afae-d2ecbab98b9a",
+      "sku": "RICE-10kg",
+      "spec": "10kg",
+      "price": 8900,
+      "original_price": 10800,
+      "stock": 150
+    },
+    {
+      "id": "3064e14f-a94a-4327-b20a-a939252e9e26",
+      "product_id": "73b79ab6-1c4d-4541-afae-d2ecbab98b9a",
+      "sku": "RICE-25kg",
+      "spec": "25kg",
+      "price": 19900,
+      "original_price": 24800,
+      "stock": 80
+    },
+    {
+      "id": "2d753418-64ff-44c6-be29-d50d3bab7db8",
+      "product_id": "299ed3ca-34a5-42c5-b595-f7fd4d726ce2",
+      "sku": "DATE-250g",
+      "spec": "250g",
+      "price": 2900,
+      "original_price": 3800,
+      "stock": 300
+    },
+    {
+      "id": "ecbe0a7f-cff3-45de-a09c-83725d54db67",
+      "product_id": "299ed3ca-34a5-42c5-b595-f7fd4d726ce2",
+      "sku": "DATE-500g",
+      "spec": "500g",
+      "price": 4900,
+      "original_price": 6800,
+      "stock": 250
+    },
+    {
+      "id": "002b7013-2fc6-4650-9a88-54c1951f8102",
+      "product_id": "299ed3ca-34a5-42c5-b595-f7fd4d726ce2",
+      "sku": "DATE-1kg",
+      "spec": "1kg",
+      "price": 8800,
+      "original_price": 11800,
+      "stock": 180
+    }
+  ],
+  "orders": [],
+  "order_items": [],
+  "logistics_tracks": [],
+  "admins": [
+    {
+      "id": "1607b91b-0ebb-45ca-81f7-bcc580d0134a",
+      "username": "admin",
+      "password": "$2a$10$0kPDCRY64y8VlVC30VJfnOw1qrs/SEpCfqstOPiMleIAoVsX2.M0y",
+      "created_at": "2026-03-17T08:26:34.365Z"
+    }
+  ]
+}
