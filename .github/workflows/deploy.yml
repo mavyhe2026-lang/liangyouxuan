@@ -1,0 +1,44 @@
+name: 🚀 自动部署到 Lightsail
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    name: 部署到服务器
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 🔑 配置 SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🚀 部署到服务器
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@3.112.41.128 << 'ENDSSH'
+            set -e
+            echo "📥 拉取最新代码..."
+            cd ~/ecommerce && git pull
+
+            echo "📦 安装后端依赖..."
+            cd ~/ecommerce/backend && npm install
+
+            echo "🔄 重启后端..."
+            pm2 restart backend
+
+            echo "🏗️  构建前端..."
+            cd ~/ecommerce/frontend && npm install && npm run build
+
+            echo "🔄 重启前端..."
+            pm2 restart frontend
+
+            echo "💾 保存 pm2 进程列表..."
+            pm2 save
+
+            echo "✅ 部署完成！"
+          ENDSSH
