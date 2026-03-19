@@ -1,84 +1,127 @@
 const express = require('express');
 const router = express.Router();
-const { all, get, run } = require('../db');
-const { v4: uuidv4 } = require('uuid');
+const Joi = require('joi');
+const { Product, ProductVariant } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 
+const variantSchema = Joi.object({
+  sku: Joi.string().optional(),
+  spec: Joi.string().required(),
+  price: Joi.number().integer().min(1).required(),
+  original_price: Joi.number().integer().min(0).optional(),
+  stock: Joi.number().integer().min(0).default(0),
+});
+
+const productSchema = Joi.object({
+  name_zh: Joi.string().max(200).required(),
+  name_en: Joi.string().max(200).required(),
+  name_ko: Joi.string().max(200).required(),
+  description_zh: Joi.string().optional().allow(''),
+  description_en: Joi.string().optional().allow(''),
+  description_ko: Joi.string().optional().allow(''),
+  category: Joi.string().valid('rice', 'dates', 'other').required(),
+  image_url: Joi.string().uri().optional().allow(''),
+  variants: Joi.array().items(variantSchema).optional(),
+});
+
 // GET /api/products
-router.get('/', (req, res) => {
-  const { category, status } = req.query;
-  let query = 'SELECT * FROM products WHERE 1=1';
-  const params = [];
-  if (category) { query += ' AND category = ?'; params.push(category); }
-  if (status) { query += ' AND status = ?'; params.push(status); }
-  else { query += " AND status = 'active'"; }
-  query += ' ORDER BY created_at DESC';
-  const products = all(query, params);
-  const result = products.map(p => ({
-    ...p,
-    variants: all('SELECT * FROM product_variants WHERE product_id = ?', [p.id])
-  }));
-  res.json({ data: result });
+router.get('/', async (req, res) => {
+  try {
+    const { category, status } = req.query;
+    const where = {};
+    if (category) where.category = category;
+    where.status = status || 'active';
+
+    const products = await Product.findAll({
+      where,
+      include: [{ model: ProductVariant, as: 'variants' }],
+      order: [['created_at', 'DESC']],
+    });
+    res.json({ code: 0, data: products });
+  } catch (err) {
+    res.status(500).json({ code: 500, error: err.message });
+  }
 });
 
 // GET /api/products/:id
-router.get('/:id', (req, res) => {
-  const product = get('SELECT * FROM products WHERE id = ?', [req.params.id]);
-  if (!product) return res.status(404).json({ error: 'Product not found' });
-  product.variants = all('SELECT * FROM product_variants WHERE product_id = ?', [product.id]);
-  res.json({ data: product });
-});
-
-// POST /api/products (admin)
-router.post('/', authMiddleware, (req, res) => {
-  const { name_zh, name_en, name_ko, description_zh, description_en, description_ko, category, image_url, variants } = req.body;
-  const id = uuidv4();
-  run(`INSERT INTO products (id, name_zh, name_en, name_ko, description_zh, description_en, description_ko, category, image_url) VALUES (?,?,?,?,?,?,?,?,?)`,
-    [id, name_zh, name_en, name_ko, description_zh||'', description_en||'', description_ko||'', category, image_url||'']
-  );
-  if (variants && Array.isArray(variants)) {
-    for (const v of variants) {
-      run(`INSERT INTO product_variants (id, product_id, sku, spec, price, original_price, stock) VALUES (?,?,?,?,?,?,?)`,
-        [uuidv4(), id, v.sku || `${category.toUpperCase()}-${v.spec}`, v.spec, v.price, v.original_price || null, v.stock || 0]
-      );
-    }
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id, {
+      include: [{ model: ProductVariant, as: 'variants' }],
+    });
+    if (!product) return res.status(404).json({ code: 404, error: '产品不存在' });
+    res.json({ code: 0, data: product });
+  } catch (err) {
+    res.status(500).json({ code: 500, error: err.message });
   }
-  const product = get('SELECT * FROM products WHERE id = ?', [id]);
-  product.variants = all('SELECT * FROM product_variants WHERE product_id = ?', [id]);
-  res.status(201).json({ data: product });
 });
 
-// PUT /api/products/:id (admin)
-router.put('/:id', authMiddleware, (req, res) => {
-  const { name_zh, name_en, name_ko, description_zh, description_en, description_ko, category, image_url, status } = req.body;
-  run(`UPDATE products SET name_zh=?, name_en=?, name_ko=?, description_zh=?, description_en=?, description_ko=?, category=?, image_url=?, status=? WHERE id=?`,
-    [name_zh, name_en, name_ko, description_zh, description_en, description_ko, category, image_url, status, req.params.id]
-  );
-  const product = get('SELECT * FROM products WHERE id = ?', [req.params.id]);
-  if (!product) return res.status(404).json({ error: 'Not found' });
-  product.variants = all('SELECT * FROM product_variants WHERE product_id = ?', [product.id]);
-  res.json({ data: product });
+// POST /api/products（管理员）
+router.post('/', authMiddleware, async (req, res) => {
+  try {
+    const { error, value } = productSchema.validate(req.body);
+    if (error) return res.status(400).json({ code: 400, error: error.details[0].message });
+
+    const { variants, ...productData } = value;
+    const product = await Product.create(productData);
+
+    if (variants?.length) {
+      for (const v of variants) {
+        await ProductVariant.create({
+          ...v,
+          product_id: product.id,
+          sku: v.sku || `${productData.category.toUpperCase()}-${v.spec}`,
+        });
+      }
+    }
+
+    const result = await Product.findByPk(product.id, {
+      include: [{ model: ProductVariant, as: 'variants' }],
+    });
+    res.status(201).json({ code: 0, data: result });
+  } catch (err) {
+    res.status(500).json({ code: 500, error: err.message });
+  }
 });
 
-// PATCH /api/products/:id/status (admin)
-router.patch('/:id/status', authMiddleware, (req, res) => {
-  const { status } = req.body;
-  run('UPDATE products SET status=? WHERE id=?', [status, req.params.id]);
-  res.json({ success: true });
+// PUT /api/products/:id（管理员）
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ code: 404, error: '产品不存在' });
+    await product.update(req.body);
+    const result = await Product.findByPk(product.id, {
+      include: [{ model: ProductVariant, as: 'variants' }],
+    });
+    res.json({ code: 0, data: result });
+  } catch (err) {
+    res.status(500).json({ code: 500, error: err.message });
+  }
 });
 
-// PUT /api/products/variants/:variantId/stock (admin)
-router.put('/variants/:variantId/stock', authMiddleware, (req, res) => {
-  const { stock } = req.body;
-  run('UPDATE product_variants SET stock=? WHERE id=?', [stock, req.params.variantId]);
-  res.json({ success: true });
+// PATCH /api/products/:id/status（管理员）
+router.patch('/:id/status', authMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['active', 'inactive'].includes(status)) {
+      return res.status(400).json({ code: 400, error: '无效的状态值' });
+    }
+    await Product.update({ status }, { where: { id: req.params.id } });
+    res.json({ code: 0, success: true });
+  } catch (err) {
+    res.status(500).json({ code: 500, error: err.message });
+  }
 });
 
-// DELETE /api/products/:id (admin)
-router.delete('/:id', authMiddleware, (req, res) => {
-  run('DELETE FROM product_variants WHERE product_id = ?', [req.params.id]);
-  run('DELETE FROM products WHERE id = ?', [req.params.id]);
-  res.json({ success: true });
+// DELETE /api/products/:id（管理员）
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    await ProductVariant.destroy({ where: { product_id: req.params.id } });
+    await Product.destroy({ where: { id: req.params.id } });
+    res.json({ code: 0, success: true });
+  } catch (err) {
+    res.status(500).json({ code: 500, error: err.message });
+  }
 });
 
 module.exports = router;
