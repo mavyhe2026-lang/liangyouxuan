@@ -16,12 +16,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Categories
+export const getCategories = () => api.get('/api/categories');
+export const getAllCategories = () => api.get('/api/categories/all');
+export const getCategoryBySlug = (slug: string) => api.get(`/api/categories/${slug}`);
+export const createCategory = (data: any) => api.post('/api/categories', data);
+export const updateCategory = (id: string, data: any) => api.put(`/api/categories/${id}`, data);
+export const deleteCategory = (id: string) => api.delete(`/api/categories/${id}`);
+
 // Products
 export const getProducts = (params?: any) => api.get('/api/products', { params });
 export const getProduct = (id: string) => api.get(`/api/products/${id}`);
 export const createProduct = (data: any) => api.post('/api/products', data);
 export const updateProduct = (id: string, data: any) => api.put(`/api/products/${id}`, data);
 export const deleteProduct = (id: string) => api.delete(`/api/products/${id}`);
+export const updateProductStatus = (id: string, status: string) => api.patch(`/api/products/${id}/status`, { status });
 export const updateVariantStock = (variantId: string, stock: number) => api.put(`/api/products/variants/${variantId}/stock`, { stock });
 
 // Orders
@@ -40,22 +49,9 @@ export const getLogistics = (orderId: string) => api.get(`/api/logistics/${order
 export const createLogistics = (order_id: string) => api.post('/api/logistics/create', { order_id });
 export const syncLogistics = (orderId: string) => api.post(`/api/logistics/sync/${orderId}`);
 
-// Admin (with explicit token param for header override)
-const adminApi = (token: string) => axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-});
+// Admin
 export const adminLogin = (username: string, password: string) => api.post('/api/admin/login', { username, password });
-export const adminGetStats = (token: string) => adminApi(token).get('/api/admin/stats');
-export const adminGetProducts = (token: string) => adminApi(token).get('/api/admin/products');
-export const adminGetOrders = (token: string) => adminApi(token).get('/api/admin/orders');
-export const adminUpdateProduct = (token: string, id: string, data: any) => adminApi(token).put(`/api/admin/products/${id}`, data);
-export const adminUpdateOrderStatus = (token: string, id: string, status: string) => adminApi(token).patch(`/api/admin/orders/${id}/status`, { status });
-export const adminCreateLogistics = (token: string, orderId: string) => adminApi(token).post('/api/logistics/create', { order_id: orderId });
-
-// Admin shortcuts (use interceptor token automatically)
 export const getStats = () => api.get('/api/admin/stats');
-export const updateProductStatus = (id: string, status: string) => api.patch(`/api/products/${id}/status`, { status });
 
 // Helpers
 export const formatPrice = (cents: number) => `¥${(cents / 100).toFixed(2)}`;

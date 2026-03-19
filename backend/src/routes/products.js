@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
-const { Product, ProductVariant } = require('../db');
+const { Product, ProductVariant, Category } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 
 const variantSchema = Joi.object({
@@ -20,21 +20,51 @@ const productSchema = Joi.object({
   description_en: Joi.string().optional().allow(''),
   description_ko: Joi.string().optional().allow(''),
   category: Joi.string().valid('rice', 'dates', 'other').required(),
+  category_id: Joi.string().uuid().optional().allow(null, ''),
   image_url: Joi.string().uri().optional().allow(''),
   variants: Joi.array().items(variantSchema).optional(),
 });
 
 // GET /api/products
+// 支持过滤参数：category（一级分类slug）、category_id（二级分类ID）、status
 router.get('/', async (req, res) => {
   try {
-    const { category, status } = req.query;
+    const { category, category_id, slug, status } = req.query;
     const where = {};
-    if (category) where.category = category;
     where.status = status || 'active';
+
+    // 按一级分类过滤（兼容旧字段）
+    if (category) where.category = category;
+
+    // 按二级分类 ID 过滤
+    if (category_id) where.category_id = category_id;
+
+    // 按分类 slug 过滤（自动解析到 category_id）
+    if (slug) {
+      const cat = await Category.findOne({ where: { slug } });
+      if (cat) {
+        // 如果是一级分类，获取所有子分类的产品
+        if (!cat.parent_id) {
+          const children = await Category.findAll({ where: { parent_id: cat.id } });
+          const childIds = children.map(c => c.id);
+          if (childIds.length > 0) {
+            const { Op } = require('sequelize');
+            where.category_id = { [Op.in]: childIds };
+          } else {
+            where.category = cat.slug;
+          }
+        } else {
+          where.category_id = cat.id;
+        }
+      }
+    }
 
     const products = await Product.findAll({
       where,
-      include: [{ model: ProductVariant, as: 'variants' }],
+      include: [
+        { model: ProductVariant, as: 'variants' },
+        { model: Category, as: 'category_info', required: false },
+      ],
       order: [['created_at', 'DESC']],
     });
     res.json({ code: 0, data: products });
@@ -47,7 +77,10 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id, {
-      include: [{ model: ProductVariant, as: 'variants' }],
+      include: [
+        { model: ProductVariant, as: 'variants' },
+        { model: Category, as: 'category_info', required: false },
+      ],
     });
     if (!product) return res.status(404).json({ code: 404, error: '产品不存在' });
     res.json({ code: 0, data: product });

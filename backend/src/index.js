@@ -53,6 +53,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ==================== 路由 ====================
+app.use('/api/categories', require('./routes/categories'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payment', require('./routes/payment'));
